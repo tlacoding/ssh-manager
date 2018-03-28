@@ -32,7 +32,7 @@ A simple script to manage ssh connections on *inx ( Such as UNIX, Linux, Mac OS,
 	Availables commands
 	--------------------------------------------------------------------------------
 	cc  <alias> [username]                           connect to server
-	add <alias>:<user>:<host>:[port]                 add new server
+	add <alias>:<user>:<password>:<host>:[port]                 add new server
 	del <alias>                                      delete server
 	export                                           export config
     # cat .ssh_servers 
@@ -57,7 +57,7 @@ For example :
 ## Use
 
     cc  <alias> [username]                          
-    add <alias>:<user>:<host>:[port]                 
+    add <alias>:<user>:<password>:<host>:[port]                 
     del <alias>                                      
     export                                           
 
