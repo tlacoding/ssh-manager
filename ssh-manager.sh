@@ -18,15 +18,16 @@ HOST_FILE="$HOME/.ssh_servers"
 DATA_DELIM=":"
 DATA_ALIAS=1
 DATA_HUSER=2
-DATA_HADDR=3
-DATA_HPORT=4
+DATA_HPASS=3
+DATA_HADDR=4
+DATA_HPORT=5
 PING_DEFAULT_TTL=20
 SSH_DEFAULT_PORT=22
 
 #================== Functions ================================================
 
 function exec_ping() {
-	case $(uname) in 
+	case $(uname) in
 		MINGW*)
 			ping -n 1 -i $PING_DEFAULT_TTL $@
 			;;
@@ -46,7 +47,7 @@ function test_host() {
 		echo -n "["
 		cecho -n -green "UP"
 		echo -n "]"
-	fi 
+	fi
 }
 
 function separator() {
@@ -58,9 +59,20 @@ function list_commands() {
 	echo -e "Availables commands"
 	separator
 	echo -e "$0 cc\t<alias> [username]\t\tconnect to server"
-	echo -e "$0 add\t<alias>:<user>:<host>:[port]\tadd new server"
+	echo -e "$0 add\t<alias>:<user>:<pwd>:<host>:[port]\tadd new server"
 	echo -e "$0 del\t<alias>\t\t\t\tdelete server"
 	echo -e "$0 export\t\t\t\t\texport config"
+}
+
+function check_sshpass() {
+	if ! type "sshpass" > /dev/null; then
+		echo "sshpass not found. Installing..."
+		install_sshpass
+	fi
+}
+
+function install_sshpass() {
+	brew install https://raw.githubusercontent.com/kadwanev/bigboybrew/master/Library/Formula/sshpass.rb
 }
 
 function probe ()
@@ -80,6 +92,12 @@ function get_addr ()
 {
 	als=$1
 	get_raw "$als" | awk -F "$DATA_DELIM" '{ print $'$DATA_HADDR' }'
+}
+
+function get_pass ()
+{
+	als=$1
+	get_raw "$als" | awk -F "$DATA_DELIM" '{ print $'$DATA_HPASS' }'
 }
 
 function get_port ()
@@ -105,7 +123,7 @@ function server_add() {
 
 function cecho() {
 	while [ "$1" ]; do
-		case "$1" in 
+		case "$1" in
 			-normal)        color="\033[00m" ;;
 			-black)         color="\033[30;01m" ;;
 			-red)           color="\033[31;01m" ;;
@@ -140,16 +158,17 @@ if [ ! -f $HOST_FILE ]; then touch "$HOST_FILE"; fi
 
 # without args
 if [ $# -eq 0 ]; then
-	separator 
+	check_sshpass
+	separator
 	echo "List of availables servers for user $(whoami) "
 	separator
-	while IFS=: read label user ip port         
-	do    
+	while IFS=: read label user pass ip port
+	do
 	test_host $ip
 	echo -ne "\t"
 	cecho -n -blue $label
 	echo -ne ' ==> '
-	cecho -n -red $user 
+	cecho -n -red $user
 	cecho -n -yellow "@"
 	cecho -n -white $ip
 	echo -ne ' -> '
@@ -173,6 +192,7 @@ case "$cmd" in
 			if [ "$user" == ""  ]; then
 				user=$(get_user "$alias")
 			fi
+			pass=$(get_pass "$alias")
 			addr=$(get_addr "$alias")
 			port=$(get_port "$alias")
 			# Use default port when parameter is missing
@@ -180,7 +200,7 @@ case "$cmd" in
 				port=$SSH_DEFAULT_PORT
 			fi
 			echo "connecting to '$alias' ($addr:$port)"
-			ssh $user@$addr -p $port
+			sshpass -p $pass ssh $user@$addr -p $port
 		else
 			echo "$0: unknown alias '$alias'"
 			exit 1
